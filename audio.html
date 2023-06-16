@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Audio Graph Example</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <input type="file" id="fileInput">
+  <canvas id="audioGraph" width="1200" height="500"></canvas>
+  <audio id="audio" controls></audio>
+  <script>
+    const audioCtx = new AudioContext();
+    const audioElement = document.getElementById('audio');
+    const audioSource = audioCtx.createMediaElementSource(audioElement);
+    const analyser = audioCtx.createAnalyser();
+    const canvas = document.getElementById('audioGraph');
+    const canvasCtx = canvas.getContext('2d');
+    analyser.fftSize = 2048;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('fileInput').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      const fileURL = URL.createObjectURL(file);
+      audioElement.src = fileURL;
+      audioElement.play();
+    });
+    function draw() {
+      requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArray);
+      canvasCtx.fillStyle = 'rgb(1, 50, 32)';
+      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+      const barWidth = (canvas.width / bufferLength) * 2.5;
+      let barHeight;
+      let x = 0;
+      for(let i = 0; i < bufferLength; i++) {
+        barHeight = dataArray[i];
+        canvasCtx.fillStyle = 'rgb(' + (barHeight+300) + ',50,50)';
+        canvasCtx.fillRect(x,canvas.height-barHeight/2,barWidth,barHeight/2);
+        x += barWidth + 1;
+      }
+    };
+    audioElement.addEventListener('canplay', () => {
+      audioSource.disconnect();
+      audioSource.connect(analyser);
+      analyser.connect(audioCtx.destination);
+      draw();
+    });
+  </script>
+</body>
+</html>
